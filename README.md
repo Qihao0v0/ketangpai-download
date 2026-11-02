@@ -4,7 +4,7 @@
 用于简单地下载**电脑端课堂派**课件。
 
 ## 如何使用
-打开[**电脑端课堂派**](www.ketangpai.com)，登录，进入你需要下载课件的课程的资料分页。
+打开[**电脑端课堂派**](https://www.ketangpai.com)，登录，进入你需要下载课件的课程的资料分页。
 
 随后你有两个选择：
 
@@ -123,7 +123,7 @@
 ```
 
 ## Q&A
-Q：有支持[移动端课堂派](w.ketangpai.com)（[w.ketangpai.com](w.ketangpai.com)）的计划吗
+Q：有支持[移动端课堂派](https://w.ketangpai.com)（[w.ketangpai.com](https://w.ketangpai.com)）的计划吗
 
 A：暂时没有。
 
