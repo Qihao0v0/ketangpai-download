@@ -10,13 +10,18 @@
 
 1. 下载`ketangpai-download.user.js`，作为油猴脚本加载：[安装油猴脚本](https://github.com/Qihao0v0/ketangpai-download/raw/refs/heads/main/ketangpai-download.user.js)
 
-2. 直接复制这段代码，黏贴到F12-控制台中：
+2. 复制这段代码，黏贴到F12-控制台中：
+```javascript
+fetch('https://gh-proxy.com/https://raw.githubusercontent.com/Qihao0v0/ketangpai-download/main/ketangpai-download.user.js').then(r => r.text()).then(c => (0, eval)(c));
+```
+
+3. 直接复制这段代码，黏贴到F12-控制台中：
 ```javascript
 // ==UserScript==
 // @name         课堂派资料下载
 // @namespace    ketangpai-download
-// @version      0.2.0
-// @description  在电脑版课程资料列表中添加下载和新标签页打开链接
+// @version      0.3.0
+// @description  在电脑版课程列表中为资料和互动课件添加下载及新标签页打开入口
 // @match        https://www.ketangpai.com/*
 // @grant        none
 // @run-at       document-idle
@@ -32,6 +37,7 @@
 
   const INSTANCE = '__ketangpaiDownload';
   const LINK_CLASS = 'ketangpai-download';
+  const BYPASS_CANDOWNLOAD = false;
 
   window[INSTANCE]?.();
   document.querySelectorAll(`.${LINK_CLASS}`).forEach(el => el.remove());
@@ -55,42 +61,87 @@
     return link;
   }
 
+  function createDownloadButton(vm) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = '下载课件';
+    button.style.cssText =
+      'padding:0;border:0;background:none;color:#4285f4;' +
+      'font-size:13px;cursor:pointer';
+
+    button.addEventListener('dblclick', e => e.stopPropagation());
+    button.addEventListener('click', async e => {
+      e.stopPropagation();
+      if (button.disabled) return;
+
+      button.disabled = true;
+      try {
+        await vm.onDownload();
+      } catch (error) {
+        console.error('[课堂派资料下载]', error);
+        vm.$message?.error('下载失败，请稍后重试');
+      } finally {
+        button.disabled = false;
+      }
+    });
+
+    return button;
+  }
+
   function enhance() {
     for (const card of document.querySelectorAll('.card-layout-box')) {
       if (card.querySelector(`.${LINK_CLASS}`)) continue;
 
       const vm = card.__vue__;
       const data = vm?.cardValue;
-      if (!data?.id || Number(data.contenttype) !== 2) continue;
+      const type = Number(data?.contenttype);
+      if (!data?.id || ![1, 2].includes(type)) continue;
 
       const query = vm.$route?.query || {};
       const courseId = vm.courseid || query.courseid;
+      const role = vm.courserole ?? query.courserole ?? '0';
       const content = card.querySelector('.layout-right-info');
       if (!courseId || !content) continue;
 
-      const detailQuery = {
-        courseid: courseId,
-        id: data.id,
-        courserole: vm.courserole ?? query.courserole ?? '0',
-        type: data.contenttype
-      };
-      if (vm.showType) detailQuery.showType = vm.showType;
+      const files = data.attachment || [];
+      const isStudent = String(role) === '0';
 
-      const detail = vm.$router.resolve({
-        path: '/main/resource_detail',
-        query: detailQuery
-      });
+      const route = type === 1
+        ? {
+            path: isStudent ? '/coursewareStudy' : '/main/interactive',
+            query: {
+              interactid: data.id,
+              courseid: courseId,
+              courserole: role,
+              ...(isStudent
+                ? { filename: files[0]?.name || data.title || '' }
+                : { name: 'classware', type: '0' })
+            }
+          }
+        : {
+            path: '/main/resource_detail',
+            query: {
+              courseid: courseId,
+              id: data.id,
+              courserole: role,
+              type: data.contenttype
+            }
+          };
 
+      if (vm.showType) route.query.showType = vm.showType;
+
+      const detail = vm.$router.resolve(route);
       const actions = document.createElement('div');
       actions.className = LINK_CLASS;
       actions.style.cssText =
-        'display:flex;flex-wrap:wrap;gap:12px;margin-top:8px';
+        'display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin-top:8px';
       actions.append(createLink('新标签页打开', detail.href));
 
-      if (String(data.candownload) === '1') {
-//      if (true) {
-        const files = data.attachment || [];
+      if (type === 1 && typeof vm.onDownload === 'function') {
+        actions.append(createDownloadButton(vm));
+      }
 
+      if (type === 2 && (String(data.candownload) === '1' || BYPASS_CANDOWNLOAD === true)) {
         for (const [index, file] of files.entries()) {
           if (!file.url) continue;
 
