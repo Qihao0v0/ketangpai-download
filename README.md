@@ -1,7 +1,7 @@
 # ketangpai-download
 [![License: GPL v3](https://img.shields.io/badge/license-GPLv3-blue)](LICENSE)
 
-用于简单地下载**电脑端课堂派**课件。
+使得**电脑端课堂派**课件在目录就可以下载，节省时间。
 
 ## 如何使用
 打开[**电脑端课堂派**](https://www.ketangpai.com/#/main)，登录，进入你需要下载课件的课程的资料分页。
